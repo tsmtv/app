@@ -1,1 +1,32 @@
-
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ekstrak proyek
+        run: unzip -q TSM-TV-Android.zip -d src
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Sertakan hls.js
+        working-directory: src/TSM-TV-Android
+        run: |
+          URL=https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.8/hls.min.js
+          if curl -fsSL "$URL" -o app/src/main/assets/hls.min.js; then
+            sed -i "s#$URL#hls.min.js#" app/src/main/assets/index.html
+          fi
+      - name: Build APK
+        working-directory: src/TSM-TV-Android
+        run: gradle assembleDebug --no-daemon --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TSM-TV-apk
+          path: src/TSM-TV-Android/app/build/outputs/apk/debug/app-debug.apk
